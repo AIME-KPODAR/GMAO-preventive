@@ -1,0 +1,284 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Suivi Maintenance Préventive</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: bandeau de synthèse, tableau des équipements à gauche, fiche d'historique à droite (empilés sur mobile) */
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --fg:#14231f; --muted:#5b6d68; --line:#d7e0de;
+  --accent:#0b6e5f; --accent-fg:#ffffff; --accent-soft:#dff0ec;
+  --bad:#b3261e; --bad-soft:#fbe4e1; --warn:#8a5a00; --warn-soft:#fdf0d0; --good:#1d6b3a; --good-soft:#dff2e5;
+  --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1816; --surface:#15221f; --fg:#e4efec; --muted:#93a8a2; --line:#27393a;
+  --accent:#4cc3ae; --accent-fg:#06211c; --accent-soft:#17342f;
+  --bad:#ff8a80; --bad-soft:#3a1d1b; --warn:#f2c14e; --warn-soft:#38300f; --good:#7fd79b; --good-soft:#14301f; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0e1816; --surface:#15221f; --fg:#e4efec; --muted:#93a8a2; --line:#27393a;
+  --accent:#4cc3ae; --accent-fg:#06211c; --accent-soft:#17342f;
+  --bad:#ff8a80; --bad-soft:#3a1d1b; --warn:#f2c14e; --warn-soft:#38300f; --good:#7fd79b; --good-soft:#14301f; color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 16px}
+h1{font-size:22px;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0}
+.stamp{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.kpi .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.kpi .v{font-family:var(--mono);font-size:28px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .n{font-size:12px;color:var(--muted)}
+.kpi.bad .v{color:var(--bad)} .kpi.warn .v{color:var(--warn)} .kpi.good .v{color:var(--good)}
+.main{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;min-width:0}
+.panel>h2{font-size:14px;margin:0;padding:12px 14px;border-bottom:1px solid var(--line);font-weight:600}
+.tools{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+input,select,textarea,button{font:inherit;color:var(--fg)}
+input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 8px;min-width:0}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{background:transparent;border:1px solid var(--line);border-radius:999px;padding:4px 11px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th{text-align:left;font-size:12px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;padding:8px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--accent-soft)}
+tbody tr[aria-selected="true"]{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.name{font-weight:500}.loc{color:var(--muted);font-size:12px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.good{background:var(--good-soft);color:var(--good)}
+.btn{background:var(--accent);color:var(--accent-fg);border:0;border-radius:4px;padding:6px 12px;cursor:pointer;font-weight:500}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn.small{padding:3px 9px;font-size:12px}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.detail{padding:14px;display:flex;flex-direction:column;gap:14px}
+.detail h3{margin:0;font-size:16px}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0}
+.facts dt{color:var(--muted)}.facts dd{margin:0;font-family:var(--mono);font-size:13px}
+.hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.hist li{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;padding:8px 0;border-top:1px solid var(--line)}
+.hist .d{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.tag{font-size:12px;font-weight:500}.tag.p{color:var(--good)}.tag.f{color:var(--bad)}.tag.c{color:var(--warn)}
+form.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+form.grid label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}
+form.grid .full{grid-column:1/-1}
+details.add{border-top:1px solid var(--line)}
+details.add summary{padding:12px 14px;cursor:pointer;font-weight:500}
+details.add form{padding:0 14px 14px}
+.empty{padding:20px 14px;color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Suivi de maintenance préventive</h1>
+      <p class="sub">Échéances, historique des interventions et performance par équipement.</p>
+    </div>
+    <div class="stamp" id="today"></div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Indicateurs"></section>
+
+  <div class="main">
+    <section class="panel">
+      <h2>Équipements</h2>
+      <div class="tools">
+        <input id="q" type="search" placeholder="Rechercher un équipement ou un lieu" aria-label="Rechercher">
+        <div class="chips" id="chips">
+          <button class="chip" data-f="all" aria-pressed="true">Tous</button>
+          <button class="chip" data-f="bad" aria-pressed="false">En retard</button>
+          <button class="chip" data-f="warn" aria-pressed="false">À venir (7 j)</button>
+          <button class="chip" data-f="good" aria-pressed="false">À jour</button>
+        </div>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Équipement</th><th>Périodicité</th><th>Dernière</th><th>Échéance</th><th>État</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="none" hidden>Aucun équipement ne correspond à ce filtre.</div>
+      <details class="add">
+        <summary>Ajouter un équipement</summary>
+        <form class="grid" id="addForm">
+          <label class="full">Nom<input id="aNom" required placeholder="Ex. Compresseur d'air n°2"></label>
+          <label>Lieu<input id="aLieu" placeholder="Ex. Atelier B"></label>
+          <label>Périodicité (jours)<input id="aPer" type="number" min="1" value="90" required></label>
+          <label>Dernière intervention<input id="aDer" type="date" required></label>
+          <div class="full"><button class="btn" type="submit">Ajouter</button></div>
+        </form>
+      </details>
+    </section>
+
+    <section class="panel" id="detailPanel" aria-live="polite"></section>
+  </div>
+  <p class="note">Les équipements affichés au départ sont des exemples. Les modifications sont enregistrées dans ce navigateur uniquement.</p>
+</div>
+
+<script>
+(function(){
+  var KEY='maintenance-preventive-v1';
+  var DAY=86400000;
+  function pad(n){return String(n).padStart(2,'0')}
+  function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function parse(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  function addDays(s,n){var d=parse(s);d.setDate(d.getDate()+n);return iso(d)}
+  function diff(a,b){return Math.round((parse(a)-parse(b))/DAY)}
+  var TODAY=iso(new Date());
+  function fr(s){return parse(s).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}
+  function esc(t){var d=document.createElement('div');d.textContent=t==null?'':String(t);return d.innerHTML}
+
+  function seed(){
+    function h(offset,type,note,duree){return {date:addDays(TODAY,offset),type:type,note:note,duree:duree||0}}
+    return [
+      {id:1,nom:'Groupe électrogène 60 kVA',lieu:'Local technique',per:90,der:addDays(TODAY,-104),hist:[
+        h(-104,'preventive','Vidange, filtres à huile et à air',3),h(-196,'preventive','Contrôle batterie et courroie',2),h(-150,'panne','Démarrage impossible, batterie déchargée',5)]},
+      {id:2,nom:'Compresseur d\'air n°1',lieu:'Atelier A',per:60,der:addDays(TODAY,-56),hist:[
+        h(-56,'preventive','Purge du réservoir, contrôle des soupapes',1),h(-116,'preventive','Remplacement du filtre',1)]},
+      {id:3,nom:'Pompe de circulation P-203',lieu:'Station de pompage',per:30,der:addDays(TODAY,-18),hist:[
+        h(-18,'preventive','Graissage des roulements',1),h(-48,'preventive','Contrôle de l\'alignement',2),h(-35,'panne','Fuite au joint mécanique',6)]},
+      {id:4,nom:'Onduleur 10 kVA',lieu:'Salle serveur',per:180,der:addDays(TODAY,-80),hist:[h(-80,'preventive','Test des batteries',2)]},
+      {id:5,nom:'Climatiseur salle serveur',lieu:'Salle serveur',per:120,der:addDays(TODAY,-127),hist:[
+        h(-127,'preventive','Nettoyage des filtres et contrôle du gaz',2),h(-60,'corrective','Remplacement du ventilateur',4)]},
+      {id:6,nom:'Convoyeur à bande L1',lieu:'Ligne de production',per:14,der:addDays(TODAY,-8),hist:[
+        h(-8,'preventive','Tension de la bande, graissage',1),h(-22,'preventive','Contrôle des rouleaux',1),h(-15,'panne','Bande décentrée',3)]}
+    ];
+  }
+  var data;
+  try{var raw=localStorage.getItem(KEY);data=raw?JSON.parse(raw):null}catch(e){data=null}
+  if(!Array.isArray(data))data=seed();
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
+
+  var state={filter:'all',q:'',sel:data.length?data[0].id:null,confirmDel:false};
+
+  function due(e){return addDays(e.der,e.per)}
+  function status(e){
+    var d=diff(due(e),TODAY);
+    if(d<0)return {k:'bad',t:'En retard de '+(-d)+' j'};
+    if(d<=7)return {k:'warn',t:d===0?'Échéance aujourd\'hui':'Dans '+d+' j'};
+    return {k:'good',t:'À jour'};
+  }
+  function find(id){for(var i=0;i<data.length;i++)if(data[i].id===id)return data[i];return null}
+
+  function renderKpis(){
+    var bad=0,warn=0,pannes=0,dur=0,np=0;
+    data.forEach(function(e){
+      var s=status(e).k;if(s==='bad')bad++;if(s==='warn')warn++;
+      e.hist.forEach(function(x){
+        if(x.type==='panne'){np++;dur+=x.duree||0;if(diff(TODAY,x.date)<=90)pannes++}
+      });
+    });
+    var okPct=data.length?Math.round((data.length-bad)/data.length*100):0;
+    var mttr=np?(dur/np).toFixed(1).replace('.',','):'0';
+    document.getElementById('kpis').innerHTML=
+      '<div class="kpi '+(bad?'bad':'good')+'"><div class="l">En retard</div><div class="v">'+bad+'</div><div class="n">interventions à rattraper</div></div>'+
+      '<div class="kpi '+(warn?'warn':'good')+'"><div class="l">À venir</div><div class="v">'+warn+'</div><div class="n">échéances dans 7 jours</div></div>'+
+      '<div class="kpi"><div class="l">Pannes (90 j)</div><div class="v">'+pannes+'</div><div class="n">sur l\'ensemble du parc</div></div>'+
+      '<div class="kpi"><div class="l">Respect du plan</div><div class="v">'+okPct+'%</div><div class="n">équipements sans retard</div></div>'+
+      '<div class="kpi"><div class="l">Durée moyenne de panne</div><div class="v">'+mttr+' h</div><div class="n">'+np+' panne(s) enregistrée(s)</div></div>';
+  }
+
+  function renderRows(){
+    var q=state.q.toLowerCase();
+    var list=data.filter(function(e){
+      var okF=state.filter==='all'||status(e).k===state.filter;
+      var okQ=!q||(e.nom+' '+e.lieu).toLowerCase().indexOf(q)>=0;
+      return okF&&okQ;
+    }).sort(function(a,b){return diff(due(a),due(b))});
+    document.getElementById('none').hidden=list.length>0;
+    document.getElementById('rows').innerHTML=list.map(function(e){
+      var s=status(e);
+      return '<tr data-id="'+e.id+'" tabindex="0" aria-selected="'+(e.id===state.sel)+'">'+
+        '<td><div class="name">'+esc(e.nom)+'</div><div class="loc">'+esc(e.lieu)+'</div></td>'+
+        '<td class="num">'+e.per+' j</td><td class="num">'+fr(e.der)+'</td><td class="num">'+fr(due(e))+'</td>'+
+        '<td><span class="pill '+s.k+'">'+s.t+'</span></td>'+
+        '<td><button class="btn small" data-done="'+e.id+'">Fait aujourd\'hui</button></td></tr>';
+    }).join('');
+  }
+
+  var TYPES={preventive:['Préventive','p'],panne:['Panne','f'],corrective:['Corrective','c']};
+  function renderDetail(){
+    var p=document.getElementById('detailPanel');var e=find(state.sel);
+    if(!e){p.innerHTML='<h2>Fiche équipement</h2><div class="empty">Sélectionnez un équipement pour voir son historique.</div>';return}
+    var s=status(e);
+    var pannes=e.hist.filter(function(x){return x.type==='panne'});
+    var hist=e.hist.slice().sort(function(a,b){return a.date<b.date?1:-1});
+    var dates=pannes.map(function(x){return x.date}).sort();
+    var mtbf='—';
+    if(dates.length>1){mtbf=Math.round(diff(dates[dates.length-1],dates[0])/(dates.length-1))+' j'}
+    p.innerHTML='<h2>Fiche équipement</h2><div class="detail">'+
+      '<div><h3>'+esc(e.nom)+'</h3><div class="loc">'+esc(e.lieu)+'</div></div>'+
+      '<dl class="facts"><dt>État</dt><dd><span class="pill '+s.k+'">'+s.t+'</span></dd>'+
+      '<dt>Prochaine échéance</dt><dd>'+fr(due(e))+'</dd>'+
+      '<dt>Pannes enregistrées</dt><dd>'+pannes.length+'</dd>'+
+      '<dt>Intervalle moyen entre pannes</dt><dd>'+mtbf+'</dd></dl>'+
+      '<form class="grid" id="logForm">'+
+      '<label>Type<select id="lType"><option value="preventive">Préventive</option><option value="panne">Panne</option><option value="corrective">Corrective</option></select></label>'+
+      '<label>Date<input id="lDate" type="date" value="'+TODAY+'" max="'+TODAY+'" required></label>'+
+      '<label>Durée (h)<input id="lDur" type="number" min="0" step="0.5" value="1"></label>'+
+      '<label class="full">Note<input id="lNote" placeholder="Ex. Remplacement du filtre"></label>'+
+      '<div class="full"><button class="btn" type="submit">Enregistrer l\'intervention</button></div></form>'+
+      '<div><strong>Historique</strong>'+(hist.length?'<ul class="hist">'+hist.map(function(x){
+        var t=TYPES[x.type]||TYPES.corrective;
+        return '<li><span class="d">'+fr(x.date)+'</span><span><span class="tag '+t[1]+'">'+t[0]+'</span>'+(x.duree?' · '+x.duree+' h':'')+'<br>'+esc(x.note||'Sans note')+'</span></li>';
+      }).join('')+'</ul>':'<div class="empty">Aucune intervention enregistrée.</div>')+'</div>'+
+      '<div><button class="btn ghost small danger" id="del">'+(state.confirmDel?'Confirmer la suppression':'Supprimer cet équipement')+'</button></div></div>';
+  }
+
+  function renderAll(){renderKpis();renderRows();renderDetail()}
+
+  function log(e,type,date,dur,note){
+    e.hist.push({date:date,type:type,note:note,duree:dur});
+    if(type==='preventive'&&date>e.der)e.der=date;
+    save();
+  }
+
+  document.getElementById('today').textContent='Aujourd\'hui : '+fr(TODAY);
+  document.getElementById('q').addEventListener('input',function(ev){state.q=ev.target.value;renderRows()});
+  document.getElementById('chips').addEventListener('click',function(ev){
+    var b=ev.target.closest('.chip');if(!b)return;state.filter=b.dataset.f;
+    Array.prototype.forEach.call(this.children,function(c){c.setAttribute('aria-pressed',String(c===b))});renderRows();
+  });
+  var tbody=document.getElementById('rows');
+  tbody.addEventListener('click',function(ev){
+    var d=ev.target.closest('[data-done]');
+    if(d){var e=find(+d.dataset.done);log(e,'preventive',TODAY,1,'Intervention préventive réalisée');state.sel=e.id;state.confirmDel=false;renderAll();return}
+    var tr=ev.target.closest('tr');if(tr){state.sel=+tr.dataset.id;state.confirmDel=false;renderRows();renderDetail()}
+  });
+  tbody.addEventListener('keydown',function(ev){
+    if(ev.key==='Enter'&&ev.target.tagName==='TR'){state.sel=+ev.target.dataset.id;state.confirmDel=false;renderRows();renderDetail()}
+  });
+  document.getElementById('detailPanel').addEventListener('submit',function(ev){
+    if(ev.target.id!=='logForm')return;ev.preventDefault();
+    var e=find(state.sel);if(!e)return;
+    log(e,document.getElementById('lType').value,document.getElementById('lDate').value,parseFloat(document.getElementById('lDur').value)||0,document.getElementById('lNote').value.trim());
+    renderAll();
+  });
+  document.getElementById('detailPanel').addEventListener('click',function(ev){
+    if(ev.target.id!=='del')return;
+    if(!state.confirmDel){state.confirmDel=true;renderDetail();return}
+    data=data.filter(function(x){return x.id!==state.sel});
+    state.sel=data.length?data[0].id:null;state.confirmDel=false;save();renderAll();
+  });
+  document.getElementById('aDer').value=TODAY;document.getElementById('aDer').max=TODAY;
+  document.getElementById('addForm').addEventListener('submit',function(ev){
+    ev.preventDefault();
+    var id=data.reduce(function(m,x){return Math.max(m,x.id)},0)+1;
+    data.push({id:id,nom:document.getElementById('aNom').value.trim(),lieu:document.getElementById('aLieu').value.trim(),
+      per:Math.max(1,parseInt(document.getElementById('aPer').value,10)||30),der:document.getElementById('aDer').value,hist:[]});
+    state.sel=id;state.confirmDel=false;save();this.reset();document.getElementById('aDer').value=TODAY;renderAll();
+  });
+  renderAll();
+})();
+</script>
+
+</body></html>
